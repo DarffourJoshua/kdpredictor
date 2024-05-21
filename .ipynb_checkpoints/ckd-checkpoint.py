@@ -1,9 +1,7 @@
 import numpy as np
 import pandas as pd
 import streamlit as st 
-# from sklearn.preprocessing import OrdinalEncoder
-from sklearn.preprocessing import  LabelEncoder
-# from sklearn import preprocessing
+from sklearn.preprocessing import LabelEncoder
 import pickle
 
 st.set_page_config(
@@ -14,11 +12,9 @@ st.set_page_config(
 )
 
 # Load the trained model
-with open('dtc_model.pkl', 'rb') as file:  
+#model = pickle.load(open('finalized_model.pkl', 'rb'))
+with open('finalized_model.pkl', 'rb') as file:  
     model = pickle.load(file)
-
-with open('encoder.pkl', 'rb') as file:
-    enc = pickle.load(file)
 
 # Define the column names
 cols = ["age", "bp", "sg", "al", "su", "rbc", "pc", "pcc", "ba", "bgr", "bu", "sc", "sod", "pot", "hemo", "pcv", "wc", "rc", "htn", "dm", "cad", "appet", "pe", "ane"]
@@ -61,12 +57,7 @@ def main():
     pe = st.selectbox("Pedal Edema", ["", "yes", "no"])
     ane = st.selectbox("Anemia", ["", "yes", "no"])
     
-   
-    
-    if st.button("Predict"):
-        # Convert data to DataFrame
-         
-        data = {
+    data = {
                 'age': int(age), 
                 'bp': float(bp), 
                 'sg': sg, 
@@ -82,7 +73,7 @@ def main():
                 'sod': float(sod), 
                 'pot': float(pot), 
                 'hemo': float(hemo), 
-                'pcv': float(pcv),
+                'pcv': float(pcv), 
                 'wc': float(wc), 
                 'rc': float(rc), 
                 'htn': htn, 
@@ -91,55 +82,27 @@ def main():
                 'appet': appet, 
                 'pe': pe, 
                 'ane': ane
-        }
-
+    }
+    df = pd.DataFrame([data], columns=cols)
+    
+    if st.button("Predict"):
         
-        df=pd.DataFrame([list(data.values())], columns= cols)
+        # Convert data to DataFrame
+       # Check if all input fields are filled
+            # Convert data to DataFrame
+       
         
+        le = LabelEncoder()
         cat_cols = [col for col in df.columns if df[col].dtype == 'object']
-
+           # [le.fit_transform(df[col]) for col in cat_cols]
+        for col in cat_cols:
+            df[col] = le.fit_transform(df[col])
         
-        # Iterate over each column in the DataFrame
-        #for cat in enc:
-          #  for col in df.columns:
-            #    if cat == col:
-            #        le.classes_ = enc[cat]
-             #       for unique_item in df[col].unique():
-            #            if unique_item not in le.classes_:
-             #               df[col] = ['Unknown' if x == unique_item else x for x in df[col]]
-           #         df[col] = le.transform(df[col])
-
-
-
-        #for cat in enc:
-         #   for col in df.columns:
-          #      le = LabelEncoder()
-                # if cat == col:
-                #     le.classes_ = enc[cat]
-                #     for unique_item in df[col].unique():
-                #         if unique_item not in le.classes_:
-                #             df[col] = ['Unknown' if x == unique_item else x for x in df[col]]
-                #     df[col] = le.transform(df[col])
+        prediction = model.predict(df)
+        print(prediction[0])
         
-        for cat in enc:
-            if cat in df.columns:
-                le = LabelEncoder()
-                le.classes_ = np.array(enc[cat] + ['Unknown'])
-        
-                # Strip leading whitespace
-                df[cat] = df[cat].str.lstrip()
-        
-                # Handle unknown categories by setting them to 'Unknown'
-                df[cat] = df[cat].apply(lambda x: x if x in le.classes_ else 'Unknown')
-        
-                # Transform the column
-                df[cat] = le.transform(df[cat])
-                
-        features_list = df.values.tolist()      
-        prediction = model.predict(features_list)
-        output = int(prediction[0])
-            # Display prediction result
-        if output == 1:
+        # Display prediction result
+        if prediction[0] == 1:
                 st.write("Positive")
         else:
                 st.write("Negative")
