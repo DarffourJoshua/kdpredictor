@@ -3,7 +3,6 @@ from upload_files import upload_file
 from GFR import GFR
 from diagnosis import predictor
 import pickle
-# from postReq import post
 from reportAI import POST
 
 # Load the trained model
@@ -84,16 +83,9 @@ def main():
     }
     
     if st.button('Generate report', key='next'):
-        # st.write(resultsForm) 
         report=POST(resultsForm)
         
         if report:
-            # st.write("Generated Report")
-            # st.write(report)
-            
-            # with open('doctors_report.txt', 'w') as file:
-            #     file.write(report)
-            
             st.download_button(
                 label="Download Report",
                 data=report,
