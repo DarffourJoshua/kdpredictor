@@ -4,6 +4,7 @@ from GFR import GFR
 from diagnosis import predictor
 import pickle
 from reportAI import POST
+import datetime
 
 # Load the trained model
 with open('voting_model.pkl', 'rb') as file:  
@@ -17,7 +18,7 @@ with open('normalization_model.pkl', 'rb') as file:
 
 
 st.set_page_config(
-   page_title="KDP App",
+   page_title="CKD App",
    page_icon="🧊",
    layout="wide",
    initial_sidebar_state="expanded",
@@ -32,7 +33,7 @@ def main():
     html_temp = """
     <div style="background:#025246 ;padding:10px">
         <h2 style="color:white;text-align:center;">
-            KD Prediction App 
+            CKD Prediction App 
         </h2>
     </div>
     """
@@ -82,21 +83,24 @@ def main():
         'gender': gender
     }
     
-    if st.button('Generate report', key='next'):
+    if st.button('Generate report', key='next1'):
         report=POST(resultsForm)
         
+        # Save the report to a text file
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f'doctors_report_{timestamp}.txt'
+        with open(filename, 'w') as file:
+            file.write(report)
         if report:
             st.download_button(
                 label="Download Report",
                 data=report,
-                file_name='doctors_report.txt',
+                file_name=filename,
                 mime='text/plain'
             )
-    
-        
-       
-
-
+            st.success(f"Report has been saved to '{filename}'.")
+        else:
+            st.error("Failed to generate the report.")
 
 if __name__ == '__main__':
     main()

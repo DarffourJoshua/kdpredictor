@@ -60,17 +60,23 @@ question = "What is the patient's condition, and what are the potential treatmen
 def POST(data):
     classification, GFR, bp, age, gender = data.values()
     try:
+        # for row in data:
+        #     age = row['age']
+        #     bp = row['bp']
+        #     gfr = row['gfr']
+        #     gender = row['gender']
+        #     classification = row['classification']
         
         # Define the prompt message as a doctor creating a report based on the model's prediction and user inputs
         system_prompt = f"""
             You are a nephrologist. Based on the following patient data and model predictions, write a concise medical report for the patient:
-            
+                
             classification:{classification}, 
             GFR:{GFR}, 
             bp:{bp}, 
             age:{age}, 
             gender: {gender}
-                
+                    
             Question: {question}
             The report should include an assessment of the patient's condition, potential treatment options, and recommended follow-up actions.
             Your Report:
@@ -85,40 +91,8 @@ def POST(data):
             |   StrOutputParser()
         )
         response = rag_chain.invoke(question)
+        print(response)
         return response
-        # print(response)
     except Exception as e:
+        print(str(e))
         return ( str(e))
-
-
-
- 
-        # # prompt = ChatPromptTemplate.from_messages(system_prompt)
-        # prompt = ChatPromptTemplate.from_messages(
-        #     [
-        #         SystemMessage(
-        #             content=system_prompt
-        #         ),  # The persistent system prompt
-        #         MessagesPlaceholder(
-        #             variable_name="model_results"
-        #         ),  # Where the memory will be stored.
-        #         HumanMessagePromptTemplate.from_template(
-        #             "{input}"
-        #         ),  # Where the human input will injected
-        #     ]
-        # )
-
-        # messages = prompt.format_messages({model_results})
-        # question_answer_chain = create_stuff_documents_chain(llm, prompt)
-        # rag_chain = create_retrieval_chain(retriever, question_answer_chain)
-
-        # response = rag_chain.invoke(model_results)
-        # model_results: {
-        #         'classification': '{data['classification']}',
-        #         'GFR': {data['gfr']},
-        #         'blood_pressure': {data['bp']},
-        #         'age': {data['age']},
-        #         'gender': '{data['gender']}',
-        #     }
-        
-
