@@ -1,52 +1,26 @@
 import numpy as np
 import pandas as pd
-import streamlit as st 
+import streamlit as st
 from sklearn.preprocessing import  LabelEncoder
-import pickle
-
-# Load the trained model
-with open('dtc_model.pkl', 'rb') as file:  
-    model = pickle.load(file)
-
-with open('encoder.pkl', 'rb') as file:
-    enc = pickle.load(file)
+from GFR import GFR
+from reportAI import POST
 
 
-def main():
-    st.header('Single File Upload')
-    uploaded_file = st.file_uploader("Choose a CSV file", type="csv", accept_multiple_files=False)
-    
+def upload_file(file, model, norm, enc):
     #Check if the file is uploaded
-    if uploaded_file is not None:
-        df = pd.read_csv(uploaded_file)
-        
-         # Store the id column temporarily
-        if 'id' in df.columns:
-            id_column = df['id']
+    if file is not None:
+        df = pd.read_csv(file)
+            
+        if 'gender' in df.columns:
+            gender_column = df['gender']
+            df.drop(['gender'], axis=1, inplace=True)
+      
+
         
         # Drop the id and classification columns
         if 'id' in df.columns and 'classification' in df.columns:
-            df.drop(["id", "classification"], axis=1, inplace=True)
+            df.drop(["id", "classification" ], axis=1, inplace=True)
             
-        for i in range(df.shape[0]):
-            if df.iloc[i,19] in [' yes','\tyes']:
-                df.iloc[i,19]='yes'
-            if df.iloc[i,19]=='\tno':
-                df.iloc[i,19]='no'
-            if df.iloc[i,20]=='\tno':
-                df.iloc[i,20]='no'
-            if df.iloc[i,15]=='\t?':
-                df.iloc[i,15]=np.nan
-            if df.iloc[i,15]=='\t43':
-                df.iloc[i,15]='43'
-            if df.iloc[i,16]=='\t?':
-                df.iloc[i,16]=np.nan
-            if df.iloc[i,16]=='\t6200':
-                df.iloc[i,16]= '6200'
-            if df.iloc[i,16]=='\t8400':
-                df.iloc[i,16]= '8400'
-            if df.iloc[i,17]=='\t?':
-                df.iloc[i,17]=np.nan
 
         #Seperate the categorical columns from the numerical columns
         cat_cols = [col for col in df.columns if df[col].dtype == "object"]
@@ -71,7 +45,7 @@ def main():
         for col in cat_cols:
             impute_mode(col)
         
-        if st.button('Predict', type="secondary"):
+        if st.button('Next', type="secondary", key="predictFile"):
         
             for cat in enc:
                 if cat in df.columns:
@@ -79,28 +53,71 @@ def main():
                     le.classes_ = np.array(enc[cat] + ['Unknown'])
             
                     # Strip leading whitespace
-                    df[cat] = df[cat].str.lstrip()
+                    # df[cat] = df[cat].str.lstrip()
+                    if df[cat].dtype == 'object':
+                        # Strip leading whitespace
+                        df[cat] = df[cat].str.lstrip()
             
                     # Handle unknown categories by setting them to 'Unknown'
                     df[cat] = df[cat].apply(lambda x: x if x in le.classes_ else 'Unknown')
             
                     # Transform the column
                     df[cat] = le.transform(df[cat])
-                    
+            
+            # Normalize the data
+            df_normalized = pd.DataFrame(norm.transform(df), columns=df.columns) 
+                              
             #read the columns from the dataframe to the model and create a new column for the prediction
-            predictions = model.predict(df.values)
+            predictions = model.predict(df_normalized)
             df['Prediction'] = predictions
-            df['Prediction'] = df['Prediction'].map({1: 'yes', 0: 'no'})
+            df['Prediction'] = df['Prediction'].map({1: 'positive', 0: 'negative'})
             
-            # Add the id column back to the DataFrame
-            df.insert(0, 'id', id_column)
+            # store the user data
+            resultsForms = {
+                'age': [age for age in df['age']],
+                'bp': [bp for bp in df['bp']],
+                'gfr': [GFR(sc, gender, age) for sc, gender, age in zip(df['sc'], gender_column, df['age'])],
+                'gender': [sex for sex in gender_column],
+                'classification': df['Prediction']
+            }
             
-        if st.button('Save'):
-            df.to_csv('prediction.csv', index=False)
+            all_reports = ""
 
-        
+            # Generate reports for each patient
+            if st.button('Generate report', key='next2'):
+                for i in range(len(resultsForms['age'])):
+                    resultForm = {
+                        'age': resultsForms['age'][i],
+                        'bp': resultsForms['bp'][i],
+                        'gfr': resultsForms['gfr'][i],
+                        'gender': resultsForms['gender'][i],
+                        'classification': resultsForms['classification'][i]
+                    }
+                    report = POST(resultForm)
+                    all_reports += f"Patient {i + 1} Report:\n{report}\n\n"
 
-        st.write(df)
+                # Save the report to a text file
+                with open('doctors_report.txt', 'w') as file:
+                    file.write(all_reports)  # Write all reports to the file
+
+                # Allow report download
+                if all_reports:
+                    st.download_button(
+                        label="Download Report",
+                        data=all_reports,
+                        file_name='doctors_report.txt',
+                        mime='text/plain'
+                    )
+                    st.write('Report generated successfully')
+                else:
+                    st.write('No report generated')
+
+            st.write(resultsForms)
+                # st.write(report)
+            
+        # if st.button('Save', key="saveFile"):
+        #     df.to_csv('prediction.csv', index=False)
     
-if __name__ == '__main__':
-    main()
+            # st.write(resultsForm)
+            
+        
