@@ -28,7 +28,7 @@ st.set_page_config(
 
 
 def main():
-    st.title("Chronic Kidney Disease Prediction Using Hybrid Model")
+    st.title("Chronic Kidney Disease Prediction")
 
     html_temp = """
     <div style="background:#025246 ;padding:10px">
