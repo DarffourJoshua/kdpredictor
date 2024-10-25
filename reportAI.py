@@ -60,14 +60,6 @@ question = "What is the patient's condition, and what are the potential treatmen
 def POST(data):
     classification, GFR, bp, age, gender = data.values()
     try:
-        # for row in data:
-        #     age = row['age']
-        #     bp = row['bp']
-        #     gfr = row['gfr']
-        #     gender = row['gender']
-        #     classification = row['classification']
-        
-        # Define the prompt message as a doctor creating a report based on the model's prediction and user inputs
         system_prompt = f"""
             You are a nephrologist. Based on the following patient data and model predictions, write a concise medical report for the patient:
                 
